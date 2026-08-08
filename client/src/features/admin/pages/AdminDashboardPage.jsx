@@ -3,6 +3,12 @@ import { useAuth } from '../../../context/AuthContext';
 import { EmptyState } from '../../../components/EmptyState';
 import apiClient from '../../../services/apiClient';
 
+const initialClientForm = {
+  name: '',
+  email: '',
+  password: '',
+};
+
 const formatCurrency = (amount, currency = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount || 0);
 
@@ -11,6 +17,9 @@ export const AdminDashboardPage = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [clientForm, setClientForm] = useState(initialClientForm);
+  const [creatingClient, setCreatingClient] = useState(false);
+  const [clientMessage, setClientMessage] = useState('');
 
   useEffect(() => {
     const loadInvoices = async () => {
@@ -33,6 +42,26 @@ export const AdminDashboardPage = () => {
     const total = invoices.reduce((sum, invoice) => sum + Number(invoice.total || 0), 0);
     return { paid, pending, total };
   }, [invoices]);
+
+  const handleCreateClient = async (event) => {
+    event.preventDefault();
+    setCreatingClient(true);
+    setClientMessage('');
+
+    try {
+      await apiClient.post('/auth/register', {
+        ...clientForm,
+        role: 'client',
+      });
+
+      setClientMessage('Client account created successfully.');
+      setClientForm(initialClientForm);
+    } catch (err) {
+      setClientMessage(err.response?.data?.message || 'Unable to create the client account.');
+    } finally {
+      setCreatingClient(false);
+    }
+  };
 
   return (
     <div className="dashboard-content">
@@ -57,6 +86,44 @@ export const AdminDashboardPage = () => {
       </div>
 
       <section className="invoice-section">
+        <div className="glass-card" style={{ marginBottom: '1rem' }}>
+          <h2>Create Client Account</h2>
+          <p className="page-subtitle">Admins can create client accounts directly from here.</p>
+          <form onSubmit={handleCreateClient} className="auth-form">
+            <label className="form-field">
+              <span>Name</span>
+              <input
+                type="text"
+                value={clientForm.name}
+                onChange={(event) => setClientForm((current) => ({ ...current, name: event.target.value }))}
+                required
+              />
+            </label>
+            <label className="form-field">
+              <span>Email</span>
+              <input
+                type="email"
+                value={clientForm.email}
+                onChange={(event) => setClientForm((current) => ({ ...current, email: event.target.value }))}
+                required
+              />
+            </label>
+            <label className="form-field">
+              <span>Password</span>
+              <input
+                type="password"
+                value={clientForm.password}
+                onChange={(event) => setClientForm((current) => ({ ...current, password: event.target.value }))}
+                required
+              />
+            </label>
+            {clientMessage ? <p className="form-error">{clientMessage}</p> : null}
+            <button type="submit" className="btn-primary" disabled={creatingClient}>
+              {creatingClient ? 'Creating Account...' : 'Create Client'}
+            </button>
+          </form>
+        </div>
+
         {error ? <div className="alert error">{error}</div> : null}
         {loading ? <div className="invoice-empty-state">Loading invoices...</div> : null}
         {!loading && invoices.length === 0 ? (

@@ -21,7 +21,7 @@ export const AppRoutes = () => {
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']} element={<AdminDashboardPage />} />} />
             <Route path="/invoices/:invoiceId" element={<InvoiceDetailPage />} />
             <Route path="/payments/success" element={<PaymentResultPage result="success" />} />
             <Route path="/payments/cancel" element={<PaymentResultPage result="cancel" />} />

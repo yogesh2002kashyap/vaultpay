@@ -3,6 +3,13 @@ import { config } from '../../config/env.js';
 import { User } from './user.model.js';
 import { sendCreated, sendSuccess, sendUnauthorized, sendConflict } from '../../core/utils/response.js';
 
+const getCookieOptions = () => ({
+  httpOnly: true,
+  secure: config.app.env === 'production',
+  sameSite: config.app.env === 'production' ? 'none' : 'lax',
+  maxAge: 60 * 60 * 1000,
+});
+
 const signAndSetToken = (res, user) => {
   const token = jwt.sign(
     { id: user._id, role: user.role },
@@ -10,12 +17,7 @@ const signAndSetToken = (res, user) => {
     { expiresIn: config.jwt.expiry }
   );
 
-  res.cookie('vaultpay_token', token, {
-    httpOnly: true,
-    secure: config.app.env === 'production',
-    sameSite: 'strict',
-    maxAge: 60 * 60 * 1000,
-  });
+  res.cookie('vaultpay_token', token, getCookieOptions());
 
   return token;
 };
@@ -39,7 +41,12 @@ export const register = async (req, res, next) => {
       return sendConflict(res, 'An account with this email address already exists.');
     }
 
-    const user = await User.create({ name, email, password, role });
+    const user = await User.create({ name, email, password, role: req.user?.role === 'admin' ? 'client' : role });
+
+    if (req.user?.role === 'admin') {
+      return sendCreated(res, 'Client account created successfully.', sanitizeUser(user));
+    }
+
     signAndSetToken(res, user);
 
     return sendCreated(res, 'Account created successfully.', sanitizeUser(user));
@@ -70,11 +77,7 @@ export const login = async (req, res, next) => {
 };
 
 export const logout = (req, res) => {
-  res.clearCookie('vaultpay_token', {
-    httpOnly: true,
-    secure: config.app.env === 'production',
-    sameSite: 'strict',
-  });
+  res.clearCookie('vaultpay_token', getCookieOptions());
   return sendSuccess(res, 'Logged out successfully.');
 };
 

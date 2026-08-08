@@ -31,6 +31,27 @@ export const InvoiceDetailPage = () => {
 
   const canPay = useMemo(() => !['paid', 'cancelled'].includes(invoice?.status), [invoice]);
 
+  const handleDownloadReceipt = async () => {
+    if (!invoice?.receiptUrl) return;
+
+    try {
+      const response = await apiClient.get(`/invoices/${invoice._id}/receipt`, {
+        responseType: 'blob',
+      });
+
+      const href = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = href;
+      link.setAttribute('download', `${invoice.invoiceNumber || invoice._id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(href);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to download the receipt right now.');
+    }
+  };
+
   if (loading) {
     return <div className="invoice-empty-state">Loading invoice details...</div>;
   }
@@ -65,7 +86,7 @@ export const InvoiceDetailPage = () => {
           <h2>Receipt</h2>
           <p>{invoice.receiptUrl ? 'Receipt is available for download.' : 'Receipt will be generated after payment confirmation.'}</p>
           {invoice.receiptUrl ? (
-            <button type="button" className="btn-secondary" onClick={() => window.open(`/api/v1/invoices/${invoice._id}/receipt`, '_blank')}>Download Receipt</button>
+            <button type="button" className="btn-secondary" onClick={handleDownloadReceipt}>Download Receipt</button>
           ) : null}
           {canPay ? (
             <button type="button" className="btn-primary" onClick={() => navigate('/dashboard')}>Return to Dashboard</button>
