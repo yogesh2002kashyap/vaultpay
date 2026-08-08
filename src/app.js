@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-import mongoSanitize from 'express-mongo-sanitize';
 
 import { config } from './config/env.js';
 import { logger } from './utils/logger.js';
@@ -27,7 +26,6 @@ app.use(
   })
 );
 
-app.use(mongoSanitize());
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
