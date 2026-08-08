@@ -55,9 +55,8 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-userSchema.pre(/^find/, function (next) {
+userSchema.pre(/^find/, function () {
   this.where({ isDeleted: { $ne: true } });
-  next();
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
