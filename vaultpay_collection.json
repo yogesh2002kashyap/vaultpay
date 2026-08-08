@@ -1,0 +1,465 @@
+{
+  "info": {
+    "_postman_id": "vaultpay-collection-v1",
+    "name": "VaultPay Financial Core",
+    "description": "Complete API test collection for VaultPay Financial Core. Includes auth, IDOR/ownership tests, and validation tests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "adminId", "value": "", "type": "string" },
+    { "key": "clientAId", "value": "", "type": "string" },
+    { "key": "clientBId", "value": "", "type": "string" },
+    { "key": "invoiceId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register Admin",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Super Admin\", \"email\": \"admin@vaultpay.com\", \"password\": \"AdminPass1\", \"role\": \"admin\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Role is admin', () => pm.expect(pm.response.json().data.role).to.eql('admin'));",
+                  "pm.test('Cookie is set', () => pm.expect(pm.cookies.has('vaultpay_token')).to.be.true);",
+                  "pm.collectionVariables.set('adminId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Client A",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Client Alpha\", \"email\": \"client.alpha@example.com\", \"password\": \"ClientPass1\", \"role\": \"client\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('clientAId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Client B",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Client Beta\", \"email\": \"client.beta@example.com\", \"password\": \"ClientPass1\", \"role\": \"client\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('clientBId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"admin@vaultpay.com\", \"password\": \"AdminPass1\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cookie is set', () => pm.expect(pm.cookies.has('vaultpay_token')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Client A",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"client.alpha@example.com\", \"password\": \"ClientPass1\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Role is client', () => pm.expect(pm.response.json().data.role).to.eql('client'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEGATIVE] Login with wrong password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"admin@vaultpay.com\", \"password\": \"WrongPassword\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Generic error message (no user enumeration)', () => pm.expect(pm.response.json().message).to.eql('Invalid email or password.'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEGATIVE] Register with weak password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Test\", \"email\": \"weak@test.com\", \"password\": \"weak\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Has validation errors', () => pm.expect(pm.response.json()).to.have.property('errors'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/profile"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has data', () => pm.expect(pm.response.json()).to.have.property('data'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEGATIVE] Get Profile without token",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/profile",
+            "header": [{ "key": "Cookie", "value": "" }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Invoices - Admin",
+      "item": [
+        {
+          "name": "Create Invoice (Admin) for Client A",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/invoices",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"clientId\": \"{{clientAId}}\", \"items\": [{\"description\": \"Consulting Q3\", \"quantity\": 10, \"unitPrice\": 150}], \"tax\": 10, \"currency\": \"USD\", \"dueDate\": \"2025-12-31T00:00:00.000Z\", \"notes\": \"Net 30\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has invoice number', () => pm.expect(pm.response.json().data.invoiceNumber).to.match(/^INV-/));",
+                  "pm.test('Total is server-computed', () => pm.expect(pm.response.json().data.total).to.eql(1650));",
+                  "pm.collectionVariables.set('invoiceId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Invoices (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/invoices"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Single Invoice (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/invoices/{{invoiceId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Invoice (Admin)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/invoices/{{invoiceId}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\": \"pending\", \"notes\": \"Updated - awaiting payment\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status updated to pending', () => pm.expect(pm.response.json().data.status).to.eql('pending'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEGATIVE] Client tries to Create Invoice (403)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/invoices",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"clientId\": \"{{clientAId}}\", \"items\": [], \"dueDate\": \"2025-12-31T00:00:00.000Z\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Invoices - Zero Trust / IDOR Tests",
+      "item": [
+        {
+          "name": "Client A - Get Own Invoices",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/invoices/my"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('All invoices belong to authenticated user', () => {",
+                  "  const clientId = pm.collectionVariables.get('clientAId');",
+                  "  const invoices = pm.response.json().data;",
+                  "  invoices.forEach(inv => pm.expect(inv.clientId).to.eql(clientId));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[IDOR TEST] Client B accesses Client A's Invoice (must 403)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// First, log in as Client B to get their cookie",
+                  "pm.sendRequest({",
+                  "  url: pm.collectionVariables.get('baseUrl') + '/auth/login',",
+                  "  method: 'POST',",
+                  "  header: { 'Content-Type': 'application/json' },",
+                  "  body: { mode: 'raw', raw: JSON.stringify({ email: 'client.beta@example.com', password: 'ClientPass1' }) }",
+                  "}, (err, res) => { console.log('Logged in as Client B'); });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[CRITICAL] IDOR Blocked: Status is 403 Forbidden', () => pm.response.to.have.status(403));",
+                  "pm.test('Response is not the invoice data', () => pm.expect(pm.response.json()).to.not.have.property('invoiceNumber'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/invoices/{{invoiceId}}"
+          }
+        },
+        {
+          "name": "[NEGATIVE] Invalid ObjectId format (400)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/invoices/not-a-valid-mongo-id"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Has validation errors', () => pm.expect(pm.response.json()).to.have.property('errors'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[NEGATIVE] Client accesses /invoices (admin route) (403)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/invoices"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
