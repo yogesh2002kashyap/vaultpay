@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../../config/env.js';
 import { User } from './user.model.js';
-import { sendCreated, sendSuccess, sendUnauthorized, sendConflict } from '../../core/utils/response.js';
+import { sendCreated, sendSuccess, sendUnauthorized, sendConflict, sendForbidden, sendBadRequest } from '../../core/utils/response.js';
 
 const getCookieOptions = () => ({
   httpOnly: true,
@@ -41,15 +41,28 @@ export const register = async (req, res, next) => {
       return sendConflict(res, 'An account with this email address already exists.');
     }
 
-    const user = await User.create({ name, email, password, role: req.user?.role === 'admin' ? 'client' : role });
+    const hasAdminUser = await User.exists({ role: 'admin', isDeleted: { $ne: true } });
 
-    if (req.user?.role === 'admin') {
-      return sendCreated(res, 'Client account created successfully.', sanitizeUser(user));
+    if (!hasAdminUser) {
+      if (role !== 'admin') {
+        return sendBadRequest(res, 'The initial bootstrap account must be created with role "admin".');
+      }
+
+      const user = await User.create({ name, email, password, role: 'admin' });
+      signAndSetToken(res, user);
+      return sendCreated(res, 'Initial admin account created successfully.', sanitizeUser(user));
     }
 
-    signAndSetToken(res, user);
+    if (!req.user) {
+      return sendUnauthorized(res, 'Authentication required to create an account.');
+    }
 
-    return sendCreated(res, 'Account created successfully.', sanitizeUser(user));
+    if (req.user.role !== 'admin') {
+      return sendForbidden(res, 'Only administrators may create accounts.');
+    }
+
+    const user = await User.create({ name, email, password, role: 'client' });
+    return sendCreated(res, 'Client account created successfully.', sanitizeUser(user));
   } catch (err) {
     next(err);
   }

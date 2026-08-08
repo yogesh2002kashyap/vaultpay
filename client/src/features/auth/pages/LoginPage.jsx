@@ -20,8 +20,8 @@ export const LoginPage = () => {
     setError('');
 
     try {
-      await login(credentials);
-      navigate('/dashboard');
+      const user = await login(credentials);
+      navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to sign in. Please check your credentials.');
     } finally {
@@ -34,6 +34,9 @@ export const LoginPage = () => {
       <div className="auth-card">
         <h1 className="title">VaultPay Core</h1>
         <p className="subtitle">Sign in to your secure account</p>
+        <p className="page-subtitle">
+          Client accounts are created by an administrator. If you need access, contact your admin for your credentials.
+        </p>
         
         <form onSubmit={handleLogin} className="auth-form">
           <label className="form-field">
