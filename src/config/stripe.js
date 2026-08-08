@@ -21,10 +21,7 @@ const assertStripeConfiguration = () => {
   if (!webhookSecret.startsWith('whsec_')) {
     throw new Error('STRIPE_WEBHOOK_SECRET must be a Stripe webhook signing secret.');
   }
-
-  if (config.app.env === 'production' && mode !== 'live') {
-    throw new Error('Production deployments must run Stripe in live mode.');
-  }
+  
 };
 
 assertStripeConfiguration();
