@@ -5,9 +5,9 @@ import { sendCreated, sendSuccess, sendUnauthorized, sendConflict, sendForbidden
 
 const getCookieOptions = () => ({
   httpOnly: true,
-  secure: config.app.env === 'production',
-  sameSite: config.app.env === 'production' ? 'none' : 'lax',
-  maxAge: 60 * 60 * 1000,
+  secure: true,
+  sameSite: 'none',
+  maxAge: 60 * 60 * 1000
 });
 
 const signAndSetToken = (res, user) => {

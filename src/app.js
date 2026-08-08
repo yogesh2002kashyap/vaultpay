@@ -17,6 +17,8 @@ const app = express();
 app.use(helmet());
 app.use('/api/webhooks/stripe', stripeWebhookRoutes);
 
+app.set('trust proxy', 1);
+
 app.use(
   cors({
     origin: config.app.clientUrl,
