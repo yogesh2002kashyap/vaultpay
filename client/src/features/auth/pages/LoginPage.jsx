@@ -1,6 +1,7 @@
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 export const LoginPage = () => {
   const { login } = useAuth();
@@ -8,6 +9,7 @@ export const LoginPage = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -51,16 +53,37 @@ export const LoginPage = () => {
             />
           </label>
 
-          <label className="form-field">
+          <label className="form-field" style={{ position: 'relative' }}>
             <span>Password</span>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               name="password"
               value={credentials.password}
               onChange={handleChange}
               autoComplete="current-password"
               required
             />
+
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              style={{
+                position: 'absolute',
+                right: 10,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'transparent',
+                border: 'none',
+                padding: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </label>
 
           {error && <p className="form-error">{error}</p>}
