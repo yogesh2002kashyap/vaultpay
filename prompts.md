@@ -1,1 +1,0 @@
-- 2026-08-09 | Verify the VaultPay auth registration bug fix on the live Render backend. I asked the agent to test the bootstrap/admin/client registration flows against /api/v1/auth/register, /api/v1/auth/login, and /api/v1/auth/profile, then report the real status codes and the root cause if anything still failed.
